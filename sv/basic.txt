@@ -1,0 +1,211 @@
+== Enkla trick ==
+
+Istället för att fördjupa sig i ett hav av Git-kommandon så kan vi använda dessa
+mer grundläggande exempel för att försiktigt doppa tårna. Trots dess enkelhet så är
+var och ett av dem användbart. Och under de första månaderna så gick jag aldrig
+utanför materialet i det här kapitlet.
+
+=== Spara tillstånd ===
+
+Är du på väg att göra någonting drastiskt? Ta en ögonblicksbild av alla filerna
+i det nuvarande biblioteket innan du gör det:
+
+ $ git init
+ $ git add .
+ $ git commit -m "My first backup"
+
+Om dina förändringar spårar ur, återställ till den ursprungliga versionen:
+
+ $ git reset --hard
+
+Och för att spara tillståndet igen:
+
+ $ git commit -a -m "Another backup"
+
+=== Addera, radera och ändra namn ===
+
+Ovanstående håller endast reda på de filer som fanns när du först körde *git add*.
+Om du lagt till nya filer eller bibliotek måste du berätta det för Git:
+
+ $ git add readme.txt Documentation
+
+Och på samma sätt, om du vill att Git ska glömma bort vissa filer:
+
+ $ git rm kludge.h obsolete.c
+ $ git rm -r incriminating/evidence/
+
+Git deletes these files for you if you haven't already.
+
+Att ändra namn är samma sak som att ta bort den gamla filen och lägga till den nya. Genvägen *git mv* finns också, och har samma syntax som ditt vanliga *mv*-kommando. Exempel:
+
+ $ git mv bug.c feature.c
+
+=== Avancerad Undo/Redo ===
+
+Ibland vill du gå tillbaks och glömma bort varje förändring efter en viss punkt eftersom allt efter detta blivit fel. Då gör du:
+
+ $ git log
+
+som visar en lista med de senaste commitsen, och deras respektive SHA1-checksummor:
+shows you a list of recent commits, and their SHA1 hashes:
+
+----------------------------------
+commit 766f9881690d240ba334153047649b8b8f11c664
+Author: Bob <bob@example.com>
+Date:   Tue Mar 14 01:59:26 2000 -0800
+
+    Replace printf() with write().
+
+commit 82f5ea346a2e651544956a8653c0f58dc151275c
+Author: Alice <alice@example.com>
+Date:   Thu Jan 1 00:00:00 1970 +0000
+
+    Initial commit.
+----------------------------------
+
+Några få av de första tecknen av checksumman räcker för att specificera vilken kommit du menar, annars kan du kopiera hela checksumman. Skriv:
+
+ $ git reset --hard 766f
+
+så återställs tillstånden till en den givna commiten, och så raderas alla nyare commits permanent.
+
+Ibland vill du bara hoppas tillbaks till ett tidigare tillstånd som hastigast. Då skriver du:
+
+ $ git checkout 82f5
+
+Detta tar dig tillbaks i tiden samtidigt som du bibehåller nyare commits. Men, precis som att resa i tiden som i en science ficion-film, så görs de redigeringar och commitar i en paralell verklighet, eftersom dina handlingar är annorlunda än de du gjorde förra gången.
+
+Denna alternativa verklighet kallas för en 'branch', och <<branch, vi kommer att säga mer om detta senare>>. Men just nu, kom ihåg att
+
+ $ git checkout master
+
+tar dig tillbaka till nutid. Och, för att få Git att sluta klaga, commita eller återställ alltid dina ändringar innan du gör checkout.
+
+För att göra en datoranalogi igen:
+
+- *`git reset --hard`*: laddar ett tidigare sparat spel och raderar alla sparade spel som är nyare än detta.
+
+- *`git checkout`*: laddar ett gammalt spel, men låter dig spela på. Speltillståndet kommer att avvika från nyare sparade spel jämfört med första gången. De sparade spel du gör nu kommer att hamna i en separat branch som representerar en annan verklighet än den du påbörjade. <<branch, vi hanterar detta senare>>.
+
+Du kan välja att återställa särskilda filer eller bibliotek genom att lägga till dem till kommandot:
+
+ $ git checkout 82f5 some.file another.file
+
+Men var försiktig, eftersom den här formen av *checkout* tyst kan skriva över filer. För att undvika olyckor, se till att göra en commit innan du utför ett checkout-kommando, särskilt när du håller på att lära dig Git. Så för att vara försiktig generellt sätt, utför en *git commit -a* innan du gör nåt du är osäker på.
+
+Don't like cutting and pasting hashes? Then use:
+
+ $ git checkout :/"My first b"
+
+to jump to the commit that starts with a given message.
+You can also ask for the 5th-last saved state:
+
+ $ git checkout master~5
+
+=== Reverting ===
+
+In a court of law, events can be stricken from the record. Likewise, you can pick specific commits to undo.
+
+ $ git commit -a
+ $ git revert 1b6d
+
+will undo just the commit with the given hash. The revert is recorded as a new
+commit, which you can confirm by running *git log*.
+
+=== Changelog Generation ===
+
+Some projects require a http://en.wikipedia.org/wiki/Changelog[changelog].
+Generate one by typing:
+
+ $ git log > ChangeLog
+
+=== Downloading Files ===
+
+Get a copy of a project managed with Git by typing:
+
+ $ git clone git://server/path/to/files
+
+For example, to get all the files I used to create this site:
+
+ $ git clone git://git.or.cz/gitmagic.git
+
+We'll have much to say about the *clone* command soon.
+
+=== The Bleeding Edge ===
+
+If you've already downloaded a copy of a project using *git clone*, you can upgrade to the latest version with:
+
+ $ git pull
+
+=== Instant Publishing ===
+
+Suppose you've written a script you'd like to share with others. You could just tell them to download from your computer, but if they do so while you're improving the script or making experimental changes, they could wind up in trouble.  Of course, this is why release cycles exist. Developers may work on a project frequently, but they only make the code available when they feel it is presentable.
+
+To do this with Git, in the directory where your script resides:
+
+ $ git init
+ $ git add .
+ $ git commit -m "First release"
+
+Then tell your users to run:
+
+ $ git clone your.computer:/path/to/script
+
+to download your script. This assumes they have ssh access. If not, run *git daemon* and tell your users to instead run:
+
+ $ git clone git://your.computer/path/to/script
+
+From now on, every time your script is ready for release, execute:
+
+ $ git commit -a -m "Next release"
+
+and your users can upgrade their version by changing to the directory containing your script and typing:
+
+ $ git pull
+
+Your users will never end up with a version of your script you don't want them to see.
+
+=== What Have I Done? ===
+
+Find out what changes you've made since the last commit with:
+
+ $ git diff
+
+Or since yesterday:
+
+ $ git diff "@{yesterday}"
+
+Or between a particular version and 2 versions ago:
+
+ $ git diff 1b6d "master~2"
+
+In each case the output is a patch that can be applied with *git apply*.
+Try also:
+
+ $ git whatchanged --since="2 weeks ago"
+
+Often I'll browse history with http://sourceforge.net/projects/qgit[qgit]
+instead, due to its slick photogenic interface, or
+http://jonas.nitro.dk/tig/[tig], a text-mode interface that works well over
+slow connections. Alternatively, install a web server, run *git instaweb* and
+fire up any web browser.
+
+=== Exercise ===
+
+Let A, B, C, D be four successive commits where B is the same as A except some files have been removed. We want to add the files back at D. How can we do this?
+
+There are at least three solutions. Assuming we are at D:
+
+  1. The difference between A and B are the removed files. We can create a patch representing this difference and apply it:
+
+   $ git diff B A | git apply
+
+  2. Since we saved the files back at A, we can retrieve them:
+
+   $ git checkout A foo.c bar.h
+
+  3. We can view going from A to B as a change we want to undo:
+
+   $ git revert B
+
+Which choice is best? Whichever you prefer most. It is easy to get what you want with Git, and often there are many ways to get it.
